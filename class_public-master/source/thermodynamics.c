@@ -485,20 +485,19 @@ int thermodynamics_helium_from_bbn(
   char * left;
 
   int num_omegab=0;
-  int num_deltaN=0;
+  int num_lambda_G_rad=0;
 
   double * omegab=NULL;
-  double * deltaN=NULL;
+  double * lambda_G_rad=NULL;
   double * YHe=NULL;
   double * ddYHe=NULL;
-  double * YHe_at_deltaN=NULL;
-  double * ddYHe_at_deltaN=NULL;
+  double * YHe_at_lambda_G_rad=NULL;
+  double * ddYHe_at_lambda_G_rad=NULL;
 
   int array_line=0;
-  double DeltaNeff;
   double omega_b;
   int last_index;
-  double Neff_bbn, z_bbn, * pvecback;
+  double z_bbn, * pvecback;
 
   /** - Infer effective number of neutrinos at the time of BBN */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -515,10 +514,10 @@ int thermodynamics_helium_from_bbn(
              pba->error_message,
              pth->error_message);
 
-  Neff_bbn = (pvecback[pba->index_bg_Omega_r]
+  /**Neff_bbn = (pvecback[pba->index_bg_Omega_r]
               *pvecback[pba->index_bg_rho_crit]
               -pvecback[pba->index_bg_rho_g])
-    /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
+    /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);**/
 
   //  printf("Neff early = %g, Neff at bbn: %g\n",pba->Neff,Neff_bbn);
 
@@ -526,7 +525,7 @@ int thermodynamics_helium_from_bbn(
    * Note that even if 3.044 is a better default value, we must keep 3.046 here as long as the BBN file we are
    * using has been computed assuming 3.046.
    */
-  DeltaNeff = Neff_bbn - 3.046;
+  //DeltaNeff = Neff_bbn - 3.046;
 
   /* the following file is assumed to contain (apart from comments and blank lines):
      - the two numbers (num_omegab, num_deltaN) = number of values of BBN free parameters
@@ -555,33 +554,33 @@ int thermodynamics_helium_from_bbn(
        be the beginning of some data (it is not a newline, a #, a %, etc.) */
     if (left[0] > 39) {
 
-      /* if the line contains data, we must interpret it. If (num_omegab, num_deltaN)=(0,0), the current line must contain
+      /* if the line contains data, we must interpret it. If (num_omegab, num_lambda_G_rad)=(0,0), the current line must contain
          their values. Otherwise, it must contain (omegab, delatN, YHe). */
-      if ((num_omegab==0) && (num_deltaN==0)) {
+      if ((num_omegab==0) && (num_lambda_G_rad==0)) {
 
-        /* read (num_omegab, num_deltaN), infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d %d",&num_omegab,&num_deltaN) != 2,
+        /* read (num_omegab, num_lambda_G_rad), infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d %d",&num_omegab,&num_lambda_G_rad) != 2,
                    pth->error_message,
-                   "could not read value of parameters (num_omegab,num_deltaN) in file %s\n",ppr->sBBN_file);
+                   "could not read value of parameters (num_omegab,num_lambda_G_rad) in file %s\n",ppr->sBBN_file);
 
         class_alloc(omegab,num_omegab*sizeof(double),pth->error_message);
-        class_alloc(deltaN,num_deltaN*sizeof(double),pth->error_message);
-        class_alloc(YHe,num_omegab*num_deltaN*sizeof(double),pth->error_message);
-        class_alloc(ddYHe,num_omegab*num_deltaN*sizeof(double),pth->error_message);
-        class_alloc(YHe_at_deltaN,num_omegab*sizeof(double),pth->error_message);
-        class_alloc(ddYHe_at_deltaN,num_omegab*sizeof(double),pth->error_message);
+        class_alloc(lambda_G_rad,num_lambda_G_rad*sizeof(double),pth->error_message);
+        class_alloc(YHe,num_omegab*num_lambda_G_rad*sizeof(double),pth->error_message);
+        class_alloc(ddYHe,num_omegab*num_lambda_G_rad*sizeof(double),pth->error_message);
+        class_alloc(YHe_at_lambda_G_rad,num_omegab*sizeof(double),pth->error_message);
+        class_alloc(ddYHe_at_lambda_G_rad,num_omegab*sizeof(double),pth->error_message);
         array_line=0;
 
       }
       else{
 
-        /* read (omegab, deltaN, YHe) */
+        /* read (omegab, lambda_G_rad, YHe) */
         class_test(sscanf(line,"%lg %lg %lg",&(omegab[array_line%num_omegab]),
-                          &(deltaN[array_line/num_omegab]),
+                          &(lambda_G_rad[array_line/num_omegab]),
                           &(YHe[array_line])
                           ) != 3,
                    pth->error_message,
-                   "could not read value of parameters (omegab,deltaN,YHe) in file %s\n",ppr->sBBN_file);
+                   "could not read value of parameters (omegab,lambda_G_rad,YHe) in file %s\n",ppr->sBBN_file);
         array_line ++;
       }
     }
@@ -589,9 +588,9 @@ int thermodynamics_helium_from_bbn(
 
   fclose(fA);
 
-  /** - spline in one dimension (along deltaN) */
-  class_call(array_spline_table_lines(deltaN,
-                                      num_deltaN,
+  /** - spline in one dimension (along lambda_G_rad) */
+  class_call(array_spline_table_lines(lambda_G_rad,
+                                      num_lambda_G_rad,
                                       YHe,
                                       num_omegab,
                                       ddYHe,
@@ -600,7 +599,9 @@ int thermodynamics_helium_from_bbn(
              pth->error_message,
              pth->error_message);
 
-  omega_b=pba->Omega0_b*pba->h*pba->h;
+ /** WARNING: The omega_b written in the file is using G=6.67e-11 in its definition. This is why we must divide our omega_b here by lambda_G^2
+so both omega_b match. */
+  omega_b=pba->Omega0_b*pba->h*pba->h/pba->lambda_G_m_0/pba->lambda_G_m_0;
 
   class_test(omega_b < omegab[0],
              pth->error_message,
@@ -612,25 +613,27 @@ int thermodynamics_helium_from_bbn(
              "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
              omega_b);
 
-  class_test(DeltaNeff < deltaN[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(pba->lambda_G_rad < lambda_G_rad[0],
+                    pth->error_message,
+                    free(omegab);free(lambda_G_rad);free(YHe);free(ddYHe);free(YHe_at_lambda_G_rad);free(ddYHe_at_lambda_G_rad),
+                    "You have asked for an unrealistic small value of lambda_G_rad = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    pba->lambda_G_rad);
 
-  class_test(DeltaNeff > deltaN[num_deltaN-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(pba->lambda_G_rad > lambda_G_rad[num_lambda_G_rad-1],
+                    pth->error_message,
+                    free(omegab);free(lambda_G_rad);free(YHe);free(ddYHe);free(YHe_at_lambda_G_rad);free(ddYHe_at_lambda_G_rad),
+                    "You have asked for an unrealistic high value of lambda_G_rad = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    pba->lambda_G_rad);
 
-  /** - interpolate in one dimension (along deltaN) */
-  class_call(array_interpolate_spline(deltaN,
-                                      num_deltaN,
+  /** - interpolate in one dimension (along lambda_G_rad) */
+  class_call(array_interpolate_spline(lambda_G_rad,
+                                      num_lambda_G_rad,
                                       YHe,
                                       ddYHe,
                                       num_omegab,
-                                      DeltaNeff,
+                                      pba->lambda_G_rad,
                                       &last_index,
-                                      YHe_at_deltaN,
+                                      YHe_at_lambda_G_rad,
                                       num_omegab,
                                       pth->error_message),
              pth->error_message,
@@ -639,9 +642,9 @@ int thermodynamics_helium_from_bbn(
   /** - spline in remaining dimension (along omegab) */
   class_call(array_spline_table_lines(omegab,
                                       num_omegab,
-                                      YHe_at_deltaN,
+                                      YHe_at_lambda_G_rad,
                                       1,
-                                      ddYHe_at_deltaN,
+                                      ddYHe_at_lambda_G_rad,
                                       _SPLINE_NATURAL_,
                                       pth->error_message),
              pth->error_message,
@@ -650,8 +653,8 @@ int thermodynamics_helium_from_bbn(
   /** - interpolate in remaining dimension (along omegab) */
   class_call(array_interpolate_spline(omegab,
                                       num_omegab,
-                                      YHe_at_deltaN,
-                                      ddYHe_at_deltaN,
+                                      YHe_at_lambda_G_rad,
+                                      ddYHe_at_lambda_G_rad,
                                       1,
                                       omega_b,
                                       &last_index,
@@ -668,11 +671,11 @@ int thermodynamics_helium_from_bbn(
 
   /** - deallocate arrays */
   free(omegab);
-  free(deltaN);
+  free(lambda_G_rad);
   free(YHe);
   free(ddYHe);
-  free(YHe_at_deltaN);
-  free(ddYHe_at_deltaN);
+  free(YHe_at_lambda_G_rad);
+  free(ddYHe_at_lambda_G_rad);
   free(pvecback);
 
   return _SUCCESS_;
