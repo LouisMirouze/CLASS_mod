@@ -3146,7 +3146,7 @@ int thermodynamics_calculate_conformal_drag_time(
                  pba->error_message,
                  pth->error_message);
 
-    R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g]*pow(lambda_G_m,2)/pow(pba->lambda_G_rad,2);
+    R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g]*pow(pba->lambda_G_rad,2)/pow(lambda_G_m,2);
 
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
       -1./R*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
@@ -3242,7 +3242,7 @@ int thermodynamics_calculate_damping_scale(
                  pba->error_message,
                  pth->error_message);
 
-    R = 3./4.*(pow(lambda_G_m,2)/pow(pba->lambda_G_rad,2))*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
+    R = 3./4.*(pow(pba->lambda_G_rad,2)/pow(lambda_G_m,2))*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
 
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
       1./6./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
